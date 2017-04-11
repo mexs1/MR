@@ -1,12 +1,15 @@
 package exampleai.brain;
 
 
+import java.util.List;
+
 import mrlib.core.KickLib;
 import mrlib.core.MoveLib;
 import mrlib.core.PositionLib;
 import essentials.communication.Action;
 import essentials.communication.action_server2008.Movement;
 import essentials.communication.worlddata_server2008.BallPosition;
+import essentials.communication.worlddata_server2008.FellowPlayer;
 import essentials.communication.worlddata_server2008.PlayMode;
 import essentials.communication.worlddata_server2008.RawWorldData;
 import essentials.communication.worlddata_server2008.ReferencePoint;
@@ -94,25 +97,53 @@ public class GoalKeeper extends Thread implements ArtificialIntelligence {
                     	// check if ball is available
 	                    if( vWorldState.getBallPosition() != null ){
 	                    	
-	                    	// get ball position and middle of goal
+	                    	/**************************************************************************************
+							*************************** Collect data for game decisions *****************************
+							**************************************************************************************/
+							
+							//****************************** variable definition *************************************//
+							// opposite player
+							List<FellowPlayer> oppositeTeam = vWorldState.getListOfOpponents();
+							
+							// teammates
+							List<FellowPlayer> teamMates = vWorldState.getListOfTeamMates(); 
+			 
+							// Points of interest
+							ReferencePoint teamMatePos = teamMates.get(0);
+							ReferencePoint opponent1Pos = oppositeTeam.get(0);
+							ReferencePoint opponent2Pos = oppositeTeam.get(1);	
+							
+							ReferencePoint goalMid = PositionLib.getMiddleOfGoal( vWorldState, mSelf.getTeam() );
+							// get ball position and middle of goal
 	                    	BallPosition ballPos = vWorldState.getBallPosition();
 	                    	ReferencePoint ownGoalMiddle = PositionLib.getMiddleOfOwnGoal(vWorldState, mSelf.getTeam());
 	                    	
+	                    	
 	                    	// check if bot can kick
 	                    	if( ballPos.getDistanceToBall() < mSelf.getGamevalue( GamevalueNames.KickRange )){                 
-	                    		// kick to enemies goal
-	                    		ReferencePoint goalMid = PositionLib.getMiddleOfGoal( vWorldState, mSelf.getTeam() );
-	                    		vBotAction = KickLib.kickTo( goalMid );  
+	                    		// either kick to team mate or to enemy goal
+	                    		if(goalMid.getDistanceToPoint() > teamMatePos.getDistanceToPoint())
+	                    		{
+	                    			vBotAction = KickLib.kickTo(  teamMatePos);  
+	                    		}
+	                    		else
+	                    		{
+	                    			vBotAction = KickLib.kickTo(  goalMid);
+	                    		}
 	                    	
 	                    	// check if ball is withing defense range around own goal
-	                    	} else if(PositionLib.isBallInRangeOfRefPoint(ballPos, ownGoalMiddle, defenseRange)){
+	                    	} 
+	                    	else if(PositionLib.isBallInRangeOfRefPoint(ballPos, ownGoalMiddle, defenseRange))
+	                    	{
 	                    		// move to ball
 	                    		vBotAction = MoveLib.runTo( ballPos );
 	                    	} 
 	                    	
 	                    	// if can not kick or ball outside defense range
-	                    	else {
-	                    		if(ownGoalMiddle.getDistanceToPoint() > positionThreshold){
+	                    	else 
+	                    	{
+	                    		if(ownGoalMiddle.getDistanceToPoint() > positionThreshold)
+	                    		{
 	                    			vBotAction = MoveLib.runTo(ownGoalMiddle);
 	                    		}
 	                    		else{
